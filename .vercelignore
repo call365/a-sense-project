@@ -1,0 +1,9 @@
+# Vercel Ignore
+dashboard_app/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
