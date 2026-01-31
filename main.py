@@ -103,7 +103,7 @@ class MockSupabaseClient:
                 {"id": "mock-ad-2", "brand_name": "Test Brand B", "ad_copy": "This is a local test ad.", "cpc_bid": 300, "keywords": ["test", "sample"], "ad_type": "cpc", "owner_id": "demo-user", "balance": 0, "lang": "en", "landing_url": "https://example.com"}
             ],
             "publishers": [],
-            "logs": [],
+            "logs": self._generate_mock_logs(),
             "payout_requests": [],
             "advertiser_users": [
                 {"id": "demo-user", "email": "demo@test.com", "password_hash": "demo", "company_name": "Demo Corp", "balance": 100000}
@@ -113,6 +113,24 @@ class MockSupabaseClient:
             "transactions": []
         }
         print("⚠️  Running in MOCK MODE (In-Memory DB)")
+
+    def _generate_mock_logs(self):
+        logs = []
+        platforms = ["chatbot", "web", "mobile_app"]
+        reasons = ["IP_REPEAT", "BOT_UA", "SPEED_CLICK"]
+        now = datetime.now()
+        for i in range(50):
+            is_valid = random.choice([True, True, False])
+            logs.append({
+                "id": str(uuid.uuid4()),
+                "timestamp": (now - timedelta(hours=random.randint(0, 24))).isoformat(),
+                "type": random.choice(["impression", "impression", "click"]),
+                "platform": random.choice(platforms),
+                "is_valid": is_valid,
+                "invalid_reason": random.choice(reasons) if not is_valid else None,
+                "user_ip": f"192.168.1.{random.randint(1, 255)}"
+            })
+        return logs
 
     def table(self, table_name):
         return MockTable(self.db, table_name)
