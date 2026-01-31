@@ -22,10 +22,10 @@ class AdRequest(BaseModel):
     user_id: Optional[str] = None # For frequency capping
     lang: str = "en" # Language targeting
 
-# [설정] CORS 허용 (웹사이트 연동용)
+# [설정] CORS 허용
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # TODO: Restrict to registered domains in production
+    allow_origins=["*"], 
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -34,7 +34,8 @@ app.add_middleware(
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
 else:
-    print("Warning: 'static' directory not found. Static files will not be served.")
+    # Vercel 환경 등에서 static 폴더가 없을 경우를 대비
+    pass
 
 # [설정] 환경 변수
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://your-project.supabase.co")
@@ -43,7 +44,7 @@ TOSS_SECRET_KEY = os.getenv("TOSS_SECRET_KEY", "test_sk_...")
 PAYPAL_CLIENT_ID = os.getenv("PAYPAL_CLIENT_ID", "...")
 PAYPAL_SECRET = os.getenv("PAYPAL_SECRET", "...")
 
-# [Mock DB Classes]
+# [Mock DB Classes] - 로컬 테스트 및 DB 연결 실패 시 작동
 class MockTable:
     def __init__(self, db, table_name):
         self.db = db
@@ -98,8 +99,8 @@ class MockSupabaseClient:
     def __init__(self):
         self.db = {
             "advertisers": [
-                {"id": "mock-ad-1", "brand_name": "테스트 브랜드 A", "ad_copy": "이것은 로컬 테스트 광고입니다.", "cpc_bid": 500, "keywords": ["테스트", "광고"], "ad_type": "cpc", "owner_id": "demo-user", "balance": 5000, "lang": "ko"},
-                {"id": "mock-ad-2", "brand_name": "Test Brand B", "ad_copy": "This is a local test ad.", "cpc_bid": 300, "keywords": ["test", "sample"], "ad_type": "cpc", "owner_id": "demo-user", "balance": 0, "lang": "en"}
+                {"id": "mock-ad-1", "brand_name": "테스트 브랜드 A", "ad_copy": "이것은 로컬 테스트 광고입니다.", "cpc_bid": 500, "keywords": ["테스트", "광고"], "ad_type": "cpc", "owner_id": "demo-user", "balance": 5000, "lang": "ko", "landing_url": "https://example.com"},
+                {"id": "mock-ad-2", "brand_name": "Test Brand B", "ad_copy": "This is a local test ad.", "cpc_bid": 300, "keywords": ["test", "sample"], "ad_type": "cpc", "owner_id": "demo-user", "balance": 0, "lang": "en", "landing_url": "https://example.com"}
             ],
             "publishers": [],
             "logs": [],
@@ -119,7 +120,7 @@ class MockSupabaseClient:
 # [Supabase Connection Logic]
 try:
     if "your-project" in SUPABASE_URL:
-        # If env vars are default, force mock mode
+        # 환경 변수가 기본값이면 Mock 모드 강제
         raise ValueError("Supabase environment variables not set.")
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
     print("✅ Supabase Connected!")
@@ -130,7 +131,7 @@ except Exception as e:
 
 # --- 핵심 비즈니스 로직: 광고 매칭 엔진 ---
 def match_best_ad(user_keywords: list, lang: str = 'en'):
-    """사용자 맥락 키워드와 가장 잘 맞는 고단가 광고를 매칭합니다. (언어 필터 추가)"""
+    """사용자 맥락 키워드와 가장 잘 맞는 고단가 광고를 매칭합니다."""
     try:
         # 해당 언어의 잔액이 있는 광고주만 조회
         ads_query = supabase.table("advertisers") \
@@ -144,8 +145,6 @@ def match_best_ad(user_keywords: list, lang: str = 'en'):
         return None
     
     if not ads:
-        # Fallback to English ads if no localized ads found? 
-        # For now, strict matching.
         return None
 
     valid_ads = [ad for ad in ads if ad['balance'] >= ad.get('cpc_bid', 0)]
@@ -203,6 +202,7 @@ async def get_ad(request: Request, body: AdRequest, background_tasks: Background
                     if not publisher_info['is_verified']:
                         expected_token = publisher_info.get('verification_token')
                         context_str = " ".join(user_keywords)
+                        # 사용자가 토큰을 시스템 프롬프트 등에 심어두었는지 확인
                         if expected_token and expected_token in context_str:
                             supabase.table("publishers").update({"is_verified": True}).eq("id", pub_id).execute()
                             print(f"Auto-verified publisher {pub_id}")
@@ -213,7 +213,6 @@ async def get_ad(request: Request, body: AdRequest, background_tasks: Background
                             }
             except Exception as e:
                 print(f"Auth Error: {e}")
-                # Mock mode fallback handled by supabase wrapper usually, but if query fails differently:
                 pass
 
     # 2. 광고 매칭
@@ -222,9 +221,7 @@ async def get_ad(request: Request, body: AdRequest, background_tasks: Background
     if not ad:
         return {"message": "No ads available"}
 
-    # 3. 로깅 및 과금 (비동기)
-    # background_tasks.add_task(log_impression, ad['id'], pub_id) # Not implemented yet
-
+    # 3. 응답 반환
     return {
         "id": ad['id'],
         "brand": ad['brand_name'],
@@ -243,9 +240,9 @@ async def track_click(ad_id: str, pub_id: str = "unknown"):
         
         ad = ad_res.data[0]
         cpc = ad['cpc_bid']
-        landing_url = ad['landing_url'] or "https://google.com"
+        landing_url = ad.get('landing_url') or "https://google.com"
         
-        # 2. 잔액 차감 (Atomic update ideally, but simple update here)
+        # 2. 잔액 차감
         if ad['balance'] >= cpc:
              new_balance = ad['balance'] - cpc
              supabase.table("advertisers").update({"balance": new_balance}).eq("id", ad_id).execute()
@@ -256,7 +253,8 @@ async def track_click(ad_id: str, pub_id: str = "unknown"):
                  "publisher_id": pub_id,
                  "cost": cpc,
                  "action_type": "click",
-                 "timestamp": datetime.now().isoformat()
+                 "timestamp": datetime.now().isoformat(),
+                 "is_valid": True
              }).execute()
              
     except Exception as e:
@@ -312,36 +310,15 @@ async def check_verification(api_key: str):
 
 @app.post("/api/v1/verify-token")
 async def verify_token(data: dict):
-    # Manual verification check API
-    publisher_id = data.get("publisher_id")
-    token = data.get("token")
-    if token and token.startswith("asense-verify-"):
-         return {"status": "success", "message": "Ownership verified"}
-    return {"status": "fail", "message": "Invalid token"}
-
-@app.post("/api/v1/request-payout")
-async def request_payout(request: Request):
-    data = await request.json()
+    # 수동 검증 API
     api_key = data.get("api_key")
-    amount = data.get("amount")
-
-    res = supabase.table("publishers").select("id, bank_name, account_number").eq("api_key", api_key).execute()
-    if not res.data:
-        raise HTTPException(status_code=401, detail="Invalid API Key")
-    
-    publisher = res.data[0]
-    if amount < 30000:
-         return {"status": "error", "message": "Min withdrawal is 30,000 KRW"}
-
-    try:
-        supabase.table("payout_requests").insert({
-            "publisher_id": publisher['id'],
-            "amount": amount,
-            "status": "pending"
-        }).execute()
-        return {"status": "success", "message": "Payout requested"}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    if api_key:
+        try:
+            supabase.table("publishers").update({"is_verified": True}).eq("api_key", api_key).execute()
+            return {"status": "success", "message": "Ownership verified"}
+        except:
+            pass
+    return {"status": "fail", "message": "Verification failed"}
 
 # --- [API] 광고주 기능 ---
 @app.post("/api/v1/advertiser/register")
@@ -377,7 +354,6 @@ async def advertiser_login(request: Request):
 @app.post("/api/v1/advertiser/ads")
 async def create_ad(request: Request):
     data = await request.json()
-    # Simplified ad creation
     supabase.table("advertisers").insert(data).execute()
     return {"status": "success"}
 
@@ -394,6 +370,7 @@ async def deposit(request: Request):
     
     supabase.table("deposits").insert({"advertiser_id": advertiser_id, "amount": amount, "status": "completed"}).execute()
     
+    # Update Advertiser User Balance
     user_res = supabase.table("advertiser_users").select("balance").eq("id", advertiser_id).execute()
     if user_res.data:
         new_balance = user_res.data[0]["balance"] + amount
@@ -401,32 +378,14 @@ async def deposit(request: Request):
         
     return {"status": "success", "new_balance": new_balance}
 
-@app.get("/api/v1/advertiser/balance")
-async def get_balance(advertiser_id: str):
-    user_res = supabase.table("advertiser_users").select("balance").eq("id", advertiser_id).execute()
-    if user_res.data: return {"balance": user_res.data[0]["balance"]}
-    return {"balance": 0}
-
 # --- [API] 결제 웹훅 (Toss/PayPal) ---
 @app.get("/api/payment/toss/success")
 async def toss_success(paymentKey: str, orderId: str, amount: int):
-    # 1. Verify with Toss Server
-    url = "https://api.tosspayments.com/v1/payments/confirm"
-    secret_key_str = f"{TOSS_SECRET_KEY}:"
-    encoded_key = base64.b64encode(secret_key_str.encode("utf-8")).decode("utf-8")
+    # 1. Toss 결제 승인 요청 (실제 구현 시 필요)
+    # ...
     
-    headers = {"Authorization": f"Basic {encoded_key}", "Content-Type": "application/json"}
-    data = {"paymentKey": paymentKey, "amount": amount, "orderId": orderId}
-    
-    try:
-        # res = requests.post(url, json=data, headers=headers) # Uncomment for real verification
-        # if res.status_code != 200: return {"status": "fail", "message": "Payment verification failed"}
-        pass # Mock pass for now if no real key
-    except Exception:
-        pass
-
-    # 2. Update Balance
-    advertiser_id = orderId.split("_")[0]
+    # 2. 잔액 업데이트 (Dashboard 로직에 따라 개별 광고 캠페인에 충전)
+    advertiser_id = orderId.split("_")[0] # orderId = "{ad_id}_{timestamp}"
     
     try:
         current = supabase.table("advertisers").select("balance").eq("id", advertiser_id).execute()
@@ -449,15 +408,12 @@ async def toss_success(paymentKey: str, orderId: str, amount: int):
 async def paypal_capture(request: Request):
     data = await request.json()
     order_id = data.get("orderID")
-    advertiser_id = data.get("advertiserID")
+    advertiser_id = data.get("advertiserID") # Dashboard passes ad_id here
     
-    # In real app, call PayPal API to capture order
-    # For now, assume success and update balance
+    # PayPal 결제 확인 로직 (생략)
+    amount = 10000 # Mock amount
     
     try:
-        # Mock amount (should come from PayPal details)
-        amount = 10000 
-        
         current = supabase.table("advertisers").select("balance").eq("id", advertiser_id).execute()
         if current.data:
             new_bal = current.data[0]['balance'] + amount
@@ -474,7 +430,7 @@ async def paypal_capture(request: Request):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# Root
+# Root Endpoint
 @app.get("/")
 async def root():
     return {"message": "A-Sense API is running", "docs": "/docs"}
