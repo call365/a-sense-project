@@ -1,0 +1,93 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "A-Sense Ad Engine",
+    "description": "AI 챗봇을 위한 문맥 기반 광고 송출 및 추적 시스템",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://your-api.vercel.app"
+    }
+  ],
+  "paths": {
+    "/api/v1/get-ad": {
+      "post": {
+        "description": "사용자의 문맥(키워드)을 기반으로 가장 적합한 광고를 반환합니다.",
+        "operationId": "getAd",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "description": "퍼블리셔 식별을 위한 API Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "광고 요청 데이터",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "keywords": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "사용자 대화에서 추출한 키워드 목록 (예: ['여행', '제주도'])"
+                  },
+                  "platform": {
+                    "type": "string",
+                    "description": "요청 플랫폼 식별자 (예: 'gpt-store', 'kakao')",
+                    "default": "chatbot"
+                  },
+                  "publisher_id": {
+                    "type": "string",
+                    "description": "퍼블리셔 ID (선택 사항, API Key로 대체 가능)"
+                  }
+                },
+                "required": [
+                  "keywords"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "성공적으로 광고를 반환함",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "brand": {
+                      "type": "string",
+                      "description": "광고주 브랜드명"
+                    },
+                    "ad_copy": {
+                      "type": "string",
+                      "description": "광고 문구"
+                    },
+                    "link": {
+                      "type": "string",
+                      "description": "클릭 추적 링크"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패 (유효하지 않은 API Key)"
+          }
+        }
+      }
+    }
+  }
+}

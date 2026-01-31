@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-Sense 광고주 센터 - 로그인</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f6f8; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .auth-container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #333; margin-bottom: 30px; }
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: #888; font-weight: bold; }
+        .tab.active { color: #007bff; border-bottom: 2px solid #007bff; margin-bottom: -2px; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+        .hidden { display: none; }
+        .msg { text-align: center; margin-top: 15px; color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2>A-Sense Ads</h2>
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('login')">로그인</div>
+            <div class="tab" onclick="showTab('register')">회원가입</div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm">
+            <input type="email" id="loginEmail" placeholder="이메일" required>
+            <input type="password" id="loginPassword" placeholder="비밀번호" required>
+            <button onclick="login()">로그인</button>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="hidden">
+            <input type="text" id="regCompany" placeholder="회사명 (Brand Name)" required>
+            <input type="email" id="regEmail" placeholder="이메일" required>
+            <input type="password" id="regPassword" placeholder="비밀번호" required>
+            <button onclick="register()">회원가입</button>
+        </div>
+        <div class="msg" id="message"></div>
+    </div>
+
+    <script>
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            if(tab === 'login') {
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('registerForm').classList.add('hidden');
+            } else {
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('registerForm').classList.remove('hidden');
+            }
+            document.getElementById('message').innerText = "";
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            try {
+                const res = await fetch('/api/v1/advertiser/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    localStorage.setItem('ad_user', JSON.stringify(data.user));
+                    location.href = 'advertiser_dashboard.html';
+                } else {
+                    document.getElementById('message').innerText = data.message;
+                    document.getElementById('message').style.color = 'red';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function register() {
+            const company_name = document.getElementById('regCompany').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+
+            try {
+                const res = await fetch('/api/v1/advertiser/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ company_name, email, password })
+                });
+                const data = await res.json();
+                
+                if (data.status === 'success') {
+                    alert('회원가입 완료! 로그인해주세요.');
+                    showTab('login');
+                } else {
+                    document.getElementById('message').innerText = data.message;
+                    document.getElementById('message').style.color = 'red';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>

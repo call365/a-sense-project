@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-Sense | 대시보드</title>
+    <style>
+        :root { --primary: #007aff; --gray: #f5f5f7; }
+        body { margin:0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray); }
+        
+        .header { background: #fff; padding: 20px 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-weight: bold; font-size: 20px; color: var(--primary); text-decoration: none; }
+        
+        .container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+        
+        .alert-box { background: #fff3cd; color: #856404; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: none; border: 1px solid #ffeeba; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .stat-card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .stat-title { color: #888; font-size: 14px; margin-bottom: 10px; }
+        .stat-value { font-size: 32px; font-weight: bold; color: #333; }
+
+        .btn-payout {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .btn-payout:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .chart-placeholder { background: #fff; height: 300px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #aaa; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <a href="/" class="logo">A-Sense Dashboard</a>
+    <div>
+        <span id="partnerName">파트너님</span>
+        <button onclick="logout()" style="margin-left:10px; padding:5px 10px; cursor:pointer;">로그아웃</button>
+    </div>
+</div>
+
+<div class="container">
+    <!-- 미인증 알림 -->
+    <div id="unverifiedAlert" class="alert-box">
+        ⚠️ <strong>계정이 아직 인증되지 않았습니다.</strong> 광고 수익을 정산받으시려면 <a href="register.html" style="color:#856404; font-weight:bold;">소유권 확인</a>을 완료해주세요.
+    </div>
+
+    <h2>실시간 현황</h2>
+    <div class="grid">
+        <div class="stat-card">
+            <div class="stat-title">오늘 노출 수 (Impressions)</div>
+            <div class="stat-value">1,240</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">오늘 클릭 수 (Clicks)</div>
+            <div class="stat-value">85</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">예상 수익 (Revenue)</div>
+            <div class="stat-value">₩<span id="revenue">0</span></div>
+            <div style="font-size:12px; color:#666; margin-top:5px;">정산 가능 금액: ₩<span id="withdrawable">0</span></div>
+            <button id="btnPayout" class="btn-payout" onclick="requestPayout()" disabled>인출 신청</button>
+        </div>
+    </div>
+
+    <!-- Chart Area -->
+    <div class="chart-placeholder">
+        [수익 및 트래픽 그래프 영역 - Chart.js 연동 예정]
+    </div>
+</div>
+
+<script>
+    // URL 파라미터 파싱
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiKey = urlParams.get('key');
+    const isVerified = urlParams.get('verified') === 'true'; // 데모용
+
+    // [데모용 데이터] 실제로는 API 호출로 가져와야 함
+    let currentRevenue = 45000; // 45,000원 (인출 가능 테스트용)
+    let withdrawableAmount = 45000;
+
+    if (apiKey || isVerified) {
+         document.getElementById('unverifiedAlert').style.display = 'none';
+         // document.getElementById('statusBadge').innerText = "✅ 인증됨 (Verified)";
+         // document.getElementById('statusBadge').className = "status-badge verified";
+         
+         // 데모 데이터 표시
+         document.getElementById('revenue').innerText = currentRevenue.toLocaleString();
+         document.getElementById('withdrawable').innerText = withdrawableAmount.toLocaleString();
+         
+         if (withdrawableAmount >= 30000) {
+             document.getElementById('btnPayout').disabled = false;
+         }
+    } else {
+         document.getElementById('unverifiedAlert').style.display = 'block';
+    }
+
+    async function requestPayout() {
+        if (!confirm(`${withdrawableAmount.toLocaleString()}원을 인출 신청하시겠습니까?`)) return;
+        
+        const btn = document.getElementById('btnPayout');
+        btn.disabled = true;
+        btn.innerText = "신청 중...";
+
+        try {
+            // 데모용 API Key가 없으면 임시 키 사용
+            const key = apiKey || "demo-key"; 
+            
+            const res = await fetch('/api/v1/request-payout', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    api_key: key,
+                    amount: withdrawableAmount
+                })
+            });
+            
+            const result = await res.json();
+            if (result.status === 'success') {
+                alert("✅ 인출 신청이 완료되었습니다.\n(영업일 기준 3일 내 입금됩니다.)");
+                btn.innerText = "신청 완료";
+            } else {
+                alert("❌ 신청 실패: " + result.message);
+                btn.disabled = false;
+                btn.innerText = "인출 신청";
+            }
+        } catch (err) {
+            console.error(err);
+            alert("통신 오류가 발생했습니다.");
+            btn.disabled = false;
+            btn.innerText = "인출 신청";
+        }
+    }
+
+    function logout() {
+        alert("로그아웃 되었습니다.");
+        window.location.href = "/";
+    }
+</script>
+
+</body>
+</html>

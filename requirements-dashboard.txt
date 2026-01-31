@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+supabase
+aiofiles
+python-multipart
+requests
+streamlit
+pandas
+plotly
