@@ -2,6 +2,15 @@
 
 This is the admin dashboard for A-Sense Ad Network, built with Streamlit.
 
+## Quick Payout Admin (one-page)
+
+For fast payout operations only, run:
+
+`streamlit run dashboard_app/admin.py`
+
+This page shows pending payout requests and lets you mark them as `completed`.
+It auto-detects table name in this order: `withdrawals` -> `payout_requests`.
+
 ## Deployment Instructions (Streamlit Cloud)
 
 Since Vercel has a size limit for serverless functions, we recommend deploying this dashboard on **Streamlit Cloud** (free and optimized for Streamlit).

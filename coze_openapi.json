@@ -1,0 +1,140 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "A-Sense Coze Plugin API",
+    "description": "Coze 플러그인용 A-Sense 광고 매칭 API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://your-app.vercel.app"
+    }
+  ],
+  "paths": {
+    "/api/v1/coze/get-ad": {
+      "post": {
+        "tags": [
+          "coze"
+        ],
+        "summary": "Coze Plugin Ad Generator",
+        "description": "Coze 봇이 전달한 단일 키워드로 광고를 매칭합니다.",
+        "operationId": "getCozeAd",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CozeAdRequest"
+              },
+              "examples": {
+                "diet": {
+                  "summary": "예시 키워드",
+                  "value": {
+                    "keyword": "다이어트"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "광고 매칭 결과",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CozeAdResponse"
+                },
+                "examples": {
+                  "found": {
+                    "summary": "매칭 성공",
+                    "value": {
+                      "ad_found": true,
+                      "ad_text": "💡 [스폰서 추천] FitBrand: 2주 식단 플랜 무료 체험",
+                      "ad_link": "https://fitbrand.example.com"
+                    }
+                  },
+                  "notFound": {
+                    "summary": "매칭 실패",
+                    "value": {
+                      "ad_found": false,
+                      "ad_text": "",
+                      "ad_link": ""
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer 인증 실패"
+          },
+          "403": {
+            "description": "검증되지 않은 앱/퍼블리셔"
+          },
+          "422": {
+            "description": "요청 바디 검증 실패"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API Key",
+        "description": "Authorization: Bearer <API_KEY>"
+      }
+    },
+    "schemas": {
+      "CozeAdRequest": {
+        "type": "object",
+        "required": [
+          "keyword"
+        ],
+        "properties": {
+          "keyword": {
+            "type": "string",
+            "description": "Coze가 추출한 핵심 키워드 1개",
+            "minLength": 1,
+            "examples": [
+              "다이어트"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "CozeAdResponse": {
+        "type": "object",
+        "required": [
+          "ad_found",
+          "ad_text",
+          "ad_link"
+        ],
+        "properties": {
+          "ad_found": {
+            "type": "boolean",
+            "description": "광고 매칭 여부"
+          },
+          "ad_text": {
+            "type": "string",
+            "description": "Coze가 바로 읽을 수 있는 광고 문구"
+          },
+          "ad_link": {
+            "type": "string",
+            "description": "광고 랜딩 URL",
+            "default": ""
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

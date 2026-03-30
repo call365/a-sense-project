@@ -1,0 +1,16 @@
+name: Supabase Keep Alive
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping keep-alive endpoint (legacy/manual)
+        env:
+          KEEP_ALIVE_URL: ${{ secrets.KEEP_ALIVE_URL }}
+        run: |
+          URL="${KEEP_ALIVE_URL:-https://a-sense.vercel.app/api/v1/health-check}"
+          echo "Pinging $URL"
+          curl -fsS -I "$URL"

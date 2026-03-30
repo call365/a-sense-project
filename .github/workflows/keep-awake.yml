@@ -1,0 +1,19 @@
+name: Keep Supabase Awake
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 핑(Ping) 날려서 DB 깨우기
+        env:
+          HEALTH_URL: ${{ secrets.KEEP_AWAKE_URL }}
+        run: |
+          URL="${HEALTH_URL:-https://a-sense.vercel.app/api/health}"
+          echo "Vercel API를 호출하여 Supabase DB를 깨웁니다..."
+          curl -sSf "$URL"
+          echo "기상 완료!"
