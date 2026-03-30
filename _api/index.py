@@ -286,6 +286,11 @@ class MockTable:
             self.query_result = [row for row in self.query_result if row.get(column, 0) > value]
         return self
 
+    def limit(self, count):
+        if hasattr(self, 'query_result') and isinstance(count, int):
+            self.query_result = self.query_result[:count]
+        return self
+
     def execute(self):
         class Result:
             def __init__(self, data): self.data = data
