@@ -260,6 +260,44 @@
 
     <script>
         let currentToken = "";
+        let currentApiKey = "";
+
+        const API_BASE_CANDIDATES = [
+            window.location.origin,
+            "https://a-sense-project-blue.vercel.app"
+        ];
+
+        async function fetchJsonWithFallback(path, options = {}) {
+            let lastError = null;
+
+            for (const base of API_BASE_CANDIDATES) {
+                const url = `${base}${path}`;
+                try {
+                    const res = await fetch(url, options);
+                    const contentType = res.headers.get('content-type') || '';
+                    const text = await res.text();
+
+                    if (!res.ok) {
+                        // 404는 다음 후보 베이스로 재시도
+                        if (res.status === 404) {
+                            lastError = new Error(`404 from ${url}`);
+                            continue;
+                        }
+                        throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+                    }
+
+                    if (!contentType.includes('application/json')) {
+                        throw new Error(`JSON 응답이 아닙니다: ${text.slice(0, 120)}`);
+                    }
+
+                    return JSON.parse(text);
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+
+            throw lastError || new Error('API 호출 실패');
+        }
 
         async function goToStep2(e) {
             e.preventDefault();
@@ -270,8 +308,7 @@
             btn.disabled = true;
 
             try {
-                // Real API call to generate token
-                const res = await fetch('/api/v1/generate-token', {
+                const data = await fetchJsonWithFallback('/api/v1/generate-token', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -282,10 +319,9 @@
                     })
                 });
                 
-                const data = await res.json();
-                
                 if (data.status === 'success') {
                     currentToken = data.verification_token;
+                    currentApiKey = data.api_key || "";
                     document.getElementById('tokenDisplay').innerText = currentToken;
                     switchStep(2);
                 } else {
@@ -302,41 +338,50 @@
 
         async function goToStep3() {
             switchStep(3);
-            
-            // Real verification process
-            try {
-                const res = await fetch('/api/v1/check-verification', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: currentToken
-                    })
-                });
 
-                const data = await res.json();
-
-                if (data.status === 'verified') {
-                    document.getElementById('loadingSpinner').style.display = 'none';
-                    document.getElementById('verificationSuccess').style.display = 'block';
-                    document.getElementById('finalApiKey').innerText = data.api_key;
-                    
-                    // Save user session
-                    localStorage.setItem('ad_publisher', JSON.stringify({
-                        api_key: data.api_key,
-                        email: document.getElementById('email').value
-                    }));
-                } else {
-                    // Retry or fail
-                    alert("검증 실패: " + data.message + "\n토큰이 올바르게 삽입되었는지 확인해주세요.");
-                    goBack(2);
-                }
-            } catch (err) {
-                console.error(err);
-                // For demo purposes, we might want to allow mock verification if real fails
-                // But for now, let's just alert error
-                alert("검증 서버 통신 오류");
-                goBack(2);
+            if (!currentApiKey) {
+                alert("API Key가 없습니다. 1단계부터 다시 시도해주세요.");
+                goBack(1);
+                return;
             }
+
+            const pollVerification = async () => {
+                try {
+                    const data = await fetchJsonWithFallback(`/api/v1/check-verification?api_key=${encodeURIComponent(currentApiKey)}`);
+
+                    if (data.is_verified === true || data.verified === true) {
+                        document.getElementById('loadingSpinner').style.display = 'none';
+                        document.getElementById('verificationSuccess').style.display = 'block';
+                        document.getElementById('finalApiKey').innerText = currentApiKey;
+
+                        localStorage.setItem('ad_publisher', JSON.stringify({
+                            api_key: currentApiKey,
+                            email: document.getElementById('email').value
+                        }));
+                        return true;
+                    }
+                    return false;
+                } catch (err) {
+                    console.error(err);
+                    return false;
+                }
+            };
+
+            // 즉시 1회 확인 후, 미완료면 주기적으로 폴링
+            const verifiedNow = await pollVerification();
+            if (verifiedNow) return;
+
+            let tries = 0;
+            const timer = setInterval(async () => {
+                tries += 1;
+                const verified = await pollVerification();
+                if (verified || tries >= 20) {
+                    clearInterval(timer);
+                    if (!verified) {
+                        alert("아직 검증 대기 중입니다. 토큰 설정 후 잠시 뒤 다시 확인해주세요.");
+                    }
+                }
+            }, 3000);
         }
 
         function goBack(step) {
