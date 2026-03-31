@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A-Sense 결제 (Payment)</title>
+    <link rel="canonical" href="https://asense.nextfintechai.com/home_ko" />
+    <script src="https://js.tosspayments.com/v1/payment"></script>
+    <!-- PayPal SDK will be loaded dynamically -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --toss-blue: #3182f6;
+            --bg: #f9fafb;
+            --card: #ffffff;
+            --text: #1f2937;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text);
+        }
+        .payment-container {
+            background: var(--card);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 480px;
+        }
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .amount-display {
+            font-size: 2rem;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary);
+        }
+        .section-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .btn-toss {
+            background-color: var(--toss-blue);
+            color: white;
+        }
+        .btn-toss-virtual {
+            background-color: #f2f4f6;
+            color: #333d4b;
+        }
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            position: relative;
+        }
+        .divider::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            border-top: 1px solid #e5e7eb;
+            z-index: 0;
+        }
+        .divider span {
+            background: var(--card);
+            padding: 0 10px;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div class="payment-container">
+    <h2><i class="fas fa-wallet"></i> 결제하기</h2>
+    <p style="text-align: center; color: #6b7280; margin-bottom: 5px;">충전 금액</p>
+    <div class="amount-display" id="amount-display">₩0</div>
+
+    <div id="payment-methods">
+        <span class="section-label">토스페이먼츠 (Toss Payments)</span>
+        <button id="toss-card" class="btn btn-toss">
+            <i class="far fa-credit-card"></i> 카드 결제
+        </button>
+        <button id="toss-transfer" class="btn btn-toss-virtual">
+            <i class="fas fa-university"></i> 계좌이체 (일반)
+        </button>
+
+        <div class="divider"><span>또는</span></div>
+
+        <span class="section-label">PayPal (Global)</span>
+        <div id="paypal-button-container"></div>
+    </div>
+</div>
+
+<script>
+    // 1. URL 파라미터 파싱
+    const urlParams = new URLSearchParams(window.location.search);
+    const amount = parseInt(urlParams.get('amount')) || 0;
+    const orderId = urlParams.get('orderId');
+    const orderName = urlParams.get('orderName') || '포인트 충전';
+    const clientKey = urlParams.get('clientKey'); // Toss Client Key
+    const paypalClientId = urlParams.get('paypalClientId') || 'sb'; // PayPal Client ID
+    const successUrl = urlParams.get('successUrl');
+    const failUrl = urlParams.get('failUrl');
+    const customerName = urlParams.get('customerName') || '고객';
+
+    // 화면에 금액 표시
+    document.getElementById('amount-display').innerText = '₩' + amount.toLocaleString();
+
+    // 2. Toss Payments 초기화
+    if (clientKey) {
+        const tossPayments = TossPayments(clientKey);
+
+        document.getElementById('toss-card').addEventListener('click', function () {
+            tossPayments.requestPayment('카드', {
+                amount: amount,
+                orderId: orderId,
+                orderName: orderName,
+                customerName: customerName,
+                successUrl: successUrl,
+                failUrl: failUrl,
+            });
+        });
+
+        document.getElementById('toss-transfer').addEventListener('click', function () {
+            tossPayments.requestPayment('계좌이체', {
+                amount: amount,
+                orderId: orderId,
+                orderName: orderName,
+                customerName: customerName,
+                successUrl: successUrl,
+                failUrl: failUrl,
+            });
+        });
+    } else {
+        alert('설정 오류: Client Key가 없습니다.');
+    }
+
+    // 3. PayPal 초기화 (동적 로딩)
+    if (amount > 0) {
+        // 환율 설정 (1 USD = 1450 KRW, 안전한 고정 환율 사용)
+        const EXCHANGE_RATE = 1450; 
+        const usdAmount = (amount / EXCHANGE_RATE).toFixed(2);
+
+        const script = document.createElement('script');
+        // KRW 미지원이므로 USD로 변경
+        script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`; 
+        
+        script.onload = function() {
+            // 사용자에게 통화 변경 알림 표시
+            const container = document.getElementById('paypal-button-container');
+            const notice = document.createElement('div');
+            notice.style.fontSize = '12px';
+            notice.style.color = '#666';
+            notice.style.marginBottom = '10px';
+            notice.style.textAlign = 'center';
+            notice.innerText = `* PayPal은 USD 결제만 지원합니다. (약 $${usdAmount})`;
+            container.parentNode.insertBefore(notice, container);
+
+            paypal.Buttons({
+                createOrder: function(data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: usdAmount // USD Amount
+                            },
+                            description: `${orderName} (Converted from KRW ${amount})`
+                        }]
+                    });
+                },
+                onApprove: function(data, actions) {
+                    return actions.order.capture().then(function(details) {
+                        alert(`PayPal 결제가 완료되었습니다. ($${usdAmount})\n계정에는 요청하신 원화 금액(₩${amount.toLocaleString()})이 충전됩니다.`);
+                        // 서버에는 원래 요청한 KRW 금액(amount)을 전달하여 충전 처리
+                        window.location.href = successUrl + "?paymentKey=" + data.orderID + "&orderId=" + orderId + "&amount=" + amount + "&provider=paypal";
+                    });
+                },
+                onError: function(err) {
+                    console.error('PayPal Error:', err);
+                    alert('PayPal 결제 중 오류가 발생했습니다.\n' + err);
+                }
+            }).render('#paypal-button-container');
+        };
+
+        script.onerror = function() {
+            console.error("PayPal SDK failed to load");
+            document.getElementById('paypal-button-container').innerHTML = "<p style='color:red; text-align:center; font-size:12px;'>PayPal 연결 실패<br>(Client ID 또는 네트워크 확인)</p>";
+        };
+
+        document.head.appendChild(script);
+    }
+</script>
+
+</body>
+</html>

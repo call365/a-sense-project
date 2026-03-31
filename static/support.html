@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고객센터 | A-Sense</title>
+    <link rel="canonical" href="https://asense.nextfintechai.com/home_ko" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #10b981;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --gray: #64748b;
+            --border: #e2e8f0;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; color: var(--dark); line-height: 1.6; background: #fff; }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+        
+        /* Navbar */
+        nav { border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); z-index: 100; }
+        .nav-inner { height: 70px; display: flex; align-items: center; justify-content: space-between; }
+        .logo { font-size: 1.5rem; font-weight: 800; color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+        .nav-links { display: flex; gap: 32px; }
+        .nav-links a { text-decoration: none; color: var(--gray); font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--primary); }
+        .nav-actions { display: flex; gap: 12px; }
+        
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 24px; border-radius: 8px; font-weight: 600; text-decoration: none; transition: all 0.2s; cursor: pointer; border: none; font-size: 1rem; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-outline { border: 2px solid var(--border); color: var(--dark); background: #fff; }
+
+        /* Page Content */
+        .page-header { padding: 80px 0; background: var(--light); text-align: center; }
+        .page-header h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; }
+        
+        .faq-section { padding: 80px 0; max-width: 800px; margin: 0 auto; }
+        .faq-item { border-bottom: 1px solid var(--border); padding: 24px 0; }
+        .faq-question { font-size: 1.25rem; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .faq-answer { margin-top: 16px; color: var(--gray); display: none; }
+        .faq-item.active .faq-answer { display: block; }
+        .faq-item.active .faq-question { color: var(--primary); }
+        
+        .contact-section { padding: 60px; background: #f8fafc; border-radius: 24px; text-align: center; margin: 60px 0; }
+        
+        /* Footer */
+        footer { background: var(--dark); color: #94a3b8; padding: 60px 0; }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
+        .footer-col h4 { color: #fff; margin-bottom: 20px; font-size: 1.125rem; }
+        .footer-col a { display: block; color: inherit; text-decoration: none; margin-bottom: 12px; }
+        
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .footer-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="container nav-inner">
+            <a href="index.html" class="logo"><i class="fas fa-network-wired"></i> A-Sense</a>
+            <div class="nav-links">
+                <a href="index.html#features">기능 소개</a>
+                <a href="advertiser_center.html">광고주</a>
+                <a href="partners.html">개발자</a>
+                <a href="dashboard.html" class="btn">대시보드 이동</a>
+            </div>
+            <div class="nav-actions">
+                <a href="register_advertiser.html" class="btn btn-outline">광고주 가입</a>
+                <a href="register_publisher.html" class="btn btn-primary">개발자 시작하기</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <div class="container">
+            <h1>무엇을 도와드릴까요?</h1>
+            <p>자주 묻는 질문을 확인하거나 직접 문의해주세요.</p>
+        </div>
+    </header>
+
+    <section class="container">
+        <div class="faq-section">
+            <h2 style="margin-bottom: 40px;">자주 묻는 질문 (FAQ)</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    수익 정산은 언제 이루어지나요?
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    수익 정산은 매월 말일을 기준으로 마감되며, 익월 15일에 등록하신 계좌로 자동 입금됩니다. 최소 지급 기준액은 30,000원입니다.
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    어떤 챗봇 플랫폼을 지원하나요?
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    OpenAI GPT Store, LangChain 기반 자체 챗봇, 카카오톡 챗봇 등 HTTP 통신이 가능한 모든 환경을 지원합니다. Python, Node.js 등 다양한 언어의 SDK와 예제를 제공합니다.
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    광고비 결제 수단은 무엇이 있나요?
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    현재 신용카드, 실시간 계좌이체, 가상계좌 입금을 지원합니다. 기업 회원의 경우 세금계산서 발행도 가능합니다.
+                </div>
+            </div>
+            
+            <div class="contact-section">
+                <h2>아직 해결되지 않으셨나요?</h2>
+                <p style="margin-bottom: 30px;">고객 지원 팀이 24시간 이내에 답변해 드립니다.</p>
+                <a href="mailto:support@a-sense.io" class="btn btn-primary btn-lg">이메일 문의하기</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-grid">
+            <div class="footer-col">
+                <a href="index.html" class="logo" style="color: #fff; margin-bottom: 20px;">
+                    <i class="fas fa-network-wired"></i> A-Sense
+                </a>
+                <p style="font-size: 0.9rem; max-width: 300px;">
+                    A-Sense는 AI Native 시대를 위한 차세대 광고 네트워크입니다.
+                </p>
+            </div>
+            <div class="footer-col">
+                <h4>서비스</h4>
+                <a href="advertiser_center.html">광고주 센터</a>
+                <a href="partners.html">파트너 센터</a>
+                <a href="success_stories.html">성공 사례</a>
+            </div>
+            <div class="footer-col">
+                <h4>지원</h4>
+                <a href="docs.html">연동 가이드</a>
+                <a href="docs.html">API 문서</a>
+                <a href="support.html">고객센터</a>
+            </div>
+            <div class="footer-col">
+                <h4>회사</h4>
+                <a href="about.html">회사 소개</a>
+                <a href="about.html">채용</a>
+                <a href="terms.html">이용약관</a>
+                <a href="privacy.html">개인정보처리방침</a>
+            </div>
+        </div>
+        <div class="container" style="border-top: 1px solid #334155; margin-top: 60px; padding-top: 30px; text-align: center; font-size: 0.9rem;">
+            &copy; 2024 A-Sense Ad Network. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        function toggleFaq(element) {
+            const item = element.parentElement;
+            item.classList.toggle('active');
+        }
+    </script>
+
+</body>
+</html>

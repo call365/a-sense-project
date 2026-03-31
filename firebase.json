@@ -1,0 +1,28 @@
+{
+  "hosting": {
+    "public": "static",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "redirects": [
+      {
+        "source": "/static/:path*",
+        "destination": "/:path*",
+        "type": 301
+      }
+    ],
+    "cleanUrls": true,
+    "rewrites": [
+      {
+        "source": "/sales",
+        "destination": "/sales_landing.html"
+      },
+      {
+        "source": "/",
+        "destination": "/home.html"
+      }
+    ]
+  }
+}
