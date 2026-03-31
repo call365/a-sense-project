@@ -168,6 +168,14 @@ async def legacy_home_en_html():
 async def explicit_verification():
     return PlainTextResponse("google-site-verification: google02e167ec2d7812c3.html")
 
+
+@app.get("/js/{file_path:path}")
+async def static_js(file_path: str):
+    target = os.path.join(STATIC_DIR, "js", file_path)
+    if os.path.exists(target) and os.path.isfile(target):
+        return FileResponse(target, media_type="application/javascript")
+    return JSONResponse(status_code=404, content={"error": "JS file not found", "path": file_path})
+
 @app.get("/{filename}")
 async def dynamic_verification(filename: str):
     if filename.startswith("google") and filename.endswith(".html"):
