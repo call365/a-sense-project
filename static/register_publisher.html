@@ -149,19 +149,12 @@
                         </select>
                         
                         <div style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px;">
-                            <h3 style="font-size: 16px; margin-bottom: 15px;">정산 계좌 정보</h3>
-                            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px;">
-                                <div>
-                                    <label>은행명</label>
-                                    <input type="text" id="bankName" placeholder="예: 국민은행" required>
-                                </div>
-                                <div>
-                                    <label>계좌번호</label>
-                                    <input type="text" id="accountNumber" placeholder="- 없이 입력" required>
-                                </div>
-                            </div>
-                            <label>예금주명</label>
-                            <input type="text" id="accountHolder" placeholder="예: 홍길동" required>
+                            <h3 style="font-size: 16px; margin-bottom: 15px;">정산 수단 정보</h3>
+                            <label>PayPal 이메일</label>
+                            <input type="email" id="paypalEmail" placeholder="payout@example.com" required>
+                            <p style="font-size: 12px; color: var(--gray); margin-top: -10px;">
+                                해외 개발자는 PayPal 이메일만 등록하면 정산 신청이 가능합니다.
+                            </p>
                         </div>
 
                         <div style="text-align: right; margin-top: 20px;">
@@ -284,7 +277,8 @@
                     body: JSON.stringify({
                         app_name: document.getElementById('appName').value,
                         email: document.getElementById('email').value,
-                        platform: document.getElementById('platformType').value
+                        platform_type: document.getElementById('platformType').value,
+                        paypal_email: document.getElementById('paypalEmail').value
                     })
                 });
                 

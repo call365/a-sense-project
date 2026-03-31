@@ -996,7 +996,9 @@ async def track_click(ad_id: str, pub_id: str = "unknown"):
 async def generate_token(request: Request):
     data = await request.json()
     app_name = data.get("app_name")
-    platform_type = data.get("platform_type")
+    platform_type = data.get("platform_type") or data.get("platform")
+    email = data.get("email")
+    paypal_email = data.get("paypal_email")
     bank_name = data.get("bank_name")
     account_number = data.get("account_number")
     account_holder = data.get("account_holder")
@@ -1004,17 +1006,35 @@ async def generate_token(request: Request):
     api_key = f"sk_live_{uuid.uuid4().hex[:16]}"
     verification_token = f"asense-verify-{uuid.uuid4().hex[:8]}"
     
+    payload = {
+        "name": app_name,
+        "platform": platform_type,
+        "api_key": api_key,
+        "verification_token": verification_token,
+        "is_verified": False,
+        "email": email,
+        "paypal_email": paypal_email,
+        "bank_name": bank_name,
+        "account_number": account_number,
+        "account_holder": account_holder,
+    }
+
     try:
-        supabase.table("publishers").insert({
-            "name": app_name,
-            "platform": platform_type,
-            "api_key": api_key,
-            "verification_token": verification_token,
-            "is_verified": False,
-            "bank_name": bank_name,
-            "account_number": account_number,
-            "account_holder": account_holder
-        }).execute()
+        try:
+            supabase.table("publishers").insert(payload).execute()
+        except Exception:
+            # 구 스키마 호환: paypal/email 컬럼이 없는 경우 최소 필드로 재시도
+            legacy_payload = {
+                "name": app_name,
+                "platform": platform_type,
+                "api_key": api_key,
+                "verification_token": verification_token,
+                "is_verified": False,
+                "bank_name": bank_name,
+                "account_number": account_number,
+                "account_holder": account_holder,
+            }
+            supabase.table("publishers").insert(legacy_payload).execute()
         
         return {
             "status": "success",
@@ -1029,7 +1049,7 @@ async def generate_token(request: Request):
 @app.get("/api/v1/check-verification")
 async def check_verification(api_key: str):
     try:
-        response = supabase.table("publishers").select("id, is_verified, bank_name, account_number").eq("api_key", api_key).execute()
+        response = supabase.table("publishers").select("id, is_verified, paypal_email, bank_name, account_number").eq("api_key", api_key).execute()
         if response.data:
             return response.data[0]
         return {"verified": False}
